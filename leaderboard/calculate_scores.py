@@ -37,21 +37,21 @@ def calculate_scores(submission_path: Path):
     
     submission_df = pd.read_csv(submission_path)
 
-    if "filename" not in labels_df.columns or "target" not in labels_df.columns:
-        raise ValueError("Labels file must contain 'filename' and 'target' columns.")
+    if "id" not in labels_df.columns or "label" not in labels_df.columns:
+        raise ValueError("Labels file must contain 'id' and 'label' columns.")
 
-    prediction_col = "prediction" if "prediction" in submission_df.columns else "target"
+    prediction_col = "label" if "label" in submission_df.columns else "label"
     if "filename" not in submission_df.columns or prediction_col not in submission_df.columns:
         raise ValueError("Submission file must contain 'filename' and 'prediction' columns.")
 
     merged = labels_df.merge(
-        submission_df[["filename", prediction_col]],
-        on="filename",
+        submission_df[["id", prediction_col]],
+        on="id",
         how="outer",
         indicator=True,
     )
-    missing_in_submission = merged[merged["_merge"] == "left_only"]["filename"].tolist()
-    missing_in_labels = merged[merged["_merge"] == "right_only"]["filename"].tolist()
+    missing_in_submission = merged[merged["_merge"] == "left_only"]["id"].tolist()
+    missing_in_labels = merged[merged["_merge"] == "right_only"]["id"].tolist()
     if missing_in_submission or missing_in_labels:
         raise ValueError(
             "Filename mismatch between labels and submission. "
@@ -59,7 +59,7 @@ def calculate_scores(submission_path: Path):
             f"Missing in labels: {missing_in_labels[:5]}."
         )
 
-    y_true = pd.to_numeric(merged["target"], errors="coerce")
+    y_true = pd.to_numeric(merged["label"], errors="coerce")
     y_pred = pd.to_numeric(merged[prediction_col], errors="coerce")
     if y_true.isna().any() or y_pred.isna().any():
         raise ValueError("Non-numeric targets or predictions detected.")
