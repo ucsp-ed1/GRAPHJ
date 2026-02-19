@@ -37,12 +37,12 @@ def calculate_scores(submission_path: Path):
     
     submission_df = pd.read_csv(submission_path)
 
-    if "id" not in labels_df.columns or "label" not in labels_df.columns:
-        raise ValueError("Labels file must contain 'id' and 'label' columns.")
+    if "id" not in labels_df.columns or "target" not in labels_df.columns:
+        raise ValueError("Labels file must contain 'id' and 'target' columns.")
 
     prediction_col = "label" if "label" in submission_df.columns else "label"
     if "id" not in submission_df.columns or prediction_col not in submission_df.columns:
-        raise ValueError("Submission file must contain 'filename' and 'prediction' columns.")
+        raise ValueError("Submission file must contain 'id' and 'label' columns.")
 
     merged = labels_df.merge(
         submission_df[["id", prediction_col]],
@@ -59,7 +59,7 @@ def calculate_scores(submission_path: Path):
             f"Missing in labels: {missing_in_labels[:5]}."
         )
     print(merged)
-    y_true = pd.to_numeric(merged["label"], errors="coerce")
+    y_true = pd.to_numeric(merged["target"], errors="coerce")
     y_pred = pd.to_numeric(merged[prediction_col], errors="coerce")
     if y_true.isna().any() or y_pred.isna().any():
         raise ValueError("Non-numeric targets or predictions detected.")
