@@ -32,16 +32,29 @@ jobs:
       - name: Identify PR Files
         id: find_files
         run: |
-          # Fetch the PR branch so we can diff against it
+          - name: Identify PR Files
+        id: find_files
+        run: |
+          # 1. Fetch the PR head and the base branch fully
+          git fetch origin ${{ github.event.pull_request.base.ref }}
           git fetch origin pull/${{ github.event.pull_request.number }}/head:pr_branch
           
-          # Get list of files changed in the PR vs the base branch
-          CHANGED_FILES=$(git diff --name-only main pr_branch | grep 'submissions/.*\.enc$' || true)
-          echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          # 2. Find the "Merge Base" (the point where the PR started)
+          BASE_SHA=$(git merge-base origin/${{ github.event.pull_request.base.ref }} pr_branch)
           
-          # Actually checkout the PR files into the submissions folder 
-          # so the script can read them
-          git checkout pr_branch -- submissions/
+          # 3. Diff from that base to the PR tip
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA pr_branch | grep 'submissions/.*\.enc$' || true)
+          
+          echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "Detected files: $CHANGED_FILES"
+          
+          # 4. Checkout ONLY those specific files from the PR branch
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No new submissions."
+          else
+            git checkout pr_branch -- $CHANGED_FILES
+          fi
+          
 
       - name: Process and Score
         env:
